@@ -158,6 +158,15 @@ const LoginScreen = () => {
               Dont't have an account? Sign Up
             </Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => navigation.navigate("ResetPassword")}
+            style={{ marginTop: 15 }}
+          >
+            <Text style={{ textAlign: "center", color: "blue", fontSize: 16 }}>
+              Forget Password?
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </View>

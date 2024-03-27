@@ -14,12 +14,16 @@ app.use(bodyParser.json());
 app.use(passport.initialize());
 const jwt = require("jsonwebtoken");
 
-  // database connection
+// database connection
 
-mongoose.connect("mongodb+srv://cooldeepak2507:1DhWGtvoLzmakWv4@cluster0.rsq3vma.mongodb.net/messenger-app", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+mongoose
+  .connect(
+    "mongodb+srv://cooldeepak2507:1DhWGtvoLzmakWv4@cluster0.rsq3vma.mongodb.net/messenger-app",
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    }
+  )
   .then(() => {
     console.log("Connected to Mongo Db");
   })
@@ -93,6 +97,32 @@ app.post("/login", (req, res) => {
 
       const token = createToken(user._id);
       res.status(200).json({ token });
+    })
+    .catch((error) => {
+      console.log("error in finding the user", error);
+      res.status(500).json({ message: "Internal server Error!" });
+    });
+});
+
+app.post("/reset-password", (req, res) => {
+  const { email, password } = req.body;
+
+  User.findOne({ email })
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      // update the password of the user
+      user.password = password;
+      user
+        .save()
+        .then(() => {
+          res.status(200).json({ message: "Password updated successfully" });
+        })
+        .catch((error) => {
+          console.log("Error updating the password", error);
+          res.status(500).json({ message: "Internal server Error!" });
+        });
     })
     .catch((error) => {
       console.log("error in finding the user", error);
@@ -290,37 +320,39 @@ app.post("/deleteMessages", async (req, res) => {
   }
 });
 
-
-
-app.get("/friend-requests/sent/:userId",async(req,res) => {
-  try{
-    const {userId} = req.params;
-    const user = await User.findById(userId).populate("sentFriendRequests","name email image").lean();
+app.get("/friend-requests/sent/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId)
+      .populate("sentFriendRequests", "name email image")
+      .lean();
 
     const sentFriendRequests = user.sentFriendRequests;
 
     res.json(sentFriendRequests);
-  } catch(error){
-    console.log("error",error);
+  } catch (error) {
+    console.log("error", error);
     res.status(500).json({ error: "Internal Server" });
   }
-})
+});
 
-app.get("/friends/:userId",(req,res) => {
-  try{
-    const {userId} = req.params;
+app.get("/friends/:userId", (req, res) => {
+  try {
+    const { userId } = req.params;
 
-    User.findById(userId).populate("friends").then((user) => {
-      if(!user){
-        return res.status(404).json({message: "User not found"})
-      }
+    User.findById(userId)
+      .populate("friends")
+      .then((user) => {
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
 
-      const friendIds = user.friends.map((friend) => friend._id);
+        const friendIds = user.friends.map((friend) => friend._id);
 
-      res.status(200).json(friendIds);
-    })
-  } catch(error){
-    console.log("error",error);
-    res.status(500).json({message:"internal server error"})
+        res.status(200).json(friendIds);
+      });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ message: "internal server error" });
   }
-})
+});
