@@ -326,6 +326,7 @@ app.get("/friend-requests/sent/:userId", async (req, res) => {
     const user = await User.findById(userId)
       .populate("sentFriendRequests", "name email image")
       .lean();
+      
 
     const sentFriendRequests = user.sentFriendRequests;
 
