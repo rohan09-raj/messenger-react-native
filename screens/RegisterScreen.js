@@ -6,17 +6,19 @@ import {
   KeyboardAvoidingView,
   Pressable,
   Alert,
+  Image,
 } from "react-native";
 import React, { useState } from "react";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { API_BASE_URL } from "../api/constants/api";
+import * as ImagePicker from "expo-image-picker";
 
 const RegisterScreen = () => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState(null);
   const navigation = useNavigation();
   const handleRegister = () => {
     const user = {
@@ -39,6 +41,7 @@ const RegisterScreen = () => {
         setEmail("");
         setPassword("");
         setImage("");
+        navigation.goBack();
       })
       .catch((error) => {
         Alert.alert(
@@ -48,6 +51,24 @@ const RegisterScreen = () => {
         console.log("registration failed", error);
       });
   };
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      base64: true,
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setImage(`data:image/jpeg;base64,${result.assets[0].base64}`);
+      console.log(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
+
   return (
     <View
       style={{
@@ -60,7 +81,7 @@ const RegisterScreen = () => {
       <KeyboardAvoidingView>
         <View
           style={{
-            marginTop: 100,
+            marginTop: 60,
             justifyContent: "center",
             alignItems: "center",
           }}
@@ -138,22 +159,37 @@ const RegisterScreen = () => {
 
           <View style={{ marginTop: 10 }}>
             <Text style={{ fontSize: 18, fontWeight: "600", color: "black" }}>
-              Capcha
+              Display Picture
             </Text>
 
-            <TextInput
-              value={image}
-              onChangeText={(text) => setImage(text)}
+            <Pressable
+              onPress={pickImage}
               style={{
-                fontSize: email ? 18 : 18,
-                borderBottomColor: "gray",
-                borderBottomWidth: 1,
-                marginVertical: 10,
-                width: 300,
+                width: 200,
+                backgroundColor: "#000000",
+                padding: 15,
+                marginTop: 10,
+                marginLeft: "auto",
+                marginRight: "auto",
+                borderRadius: 6,
               }}
-              placeholderTextColor={"black"}
-              placeholder="Image"
-            />
+            >
+              <Text style={{ color: "white", textAlign: "center" }}>
+                Pick an image
+              </Text>
+            </Pressable>
+            {image && (
+              <Image
+                source={{ uri: image }}
+                style={{
+                  height: 150,
+                  width: 150,
+                  marginTop: 10,
+                  marginLeft: "auto",
+                  marginRight: "auto",
+                }}
+              />
+            )}
           </View>
 
           <Pressable
@@ -162,7 +198,7 @@ const RegisterScreen = () => {
               width: 200,
               backgroundColor: "#ff0000",
               padding: 15,
-              marginTop: 50,
+              marginTop: 20,
               marginLeft: "auto",
               marginRight: "auto",
               borderRadius: 6,
