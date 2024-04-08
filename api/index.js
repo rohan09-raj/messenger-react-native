@@ -19,14 +19,14 @@ const jwt = require("jsonwebtoken");
 
 mongoose
   .connect(
-    "mongodb+srv://cooldeepak2507:1DhWGtvoLzmakWv4@cluster0.rsq3vma.mongodb.net",
+    "mongodb+srv://cooldeepak2507:1DhWGtvoLzmakWv4@cluster0.rsq3vma.mongodb.net/messenger-app",
     {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     }
   )
   .then(() => {
-    console.log("Connected to Mongo Db");
+    console.log("Connected to MongoDb");
   })
   .catch((err) => {
     console.log("Error connecting to MongoDb", err);
@@ -336,6 +336,7 @@ app.get("/friend-requests/sent/:userId", async (req, res) => {
     const user = await User.findById(userId)
       .populate("sentFriendRequests", "name email image")
       .lean();
+      
 
     const sentFriendRequests = user.sentFriendRequests;
 
