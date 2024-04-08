@@ -3,14 +3,15 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
+const toxicity = require("@tensorflow-models/toxicity");
 
 const app = express();
 const port = 8000;
 const cors = require("cors");
 app.use(cors());
 
-app.use(bodyParser.json({limit: '10mb', extended: true}));
-app.use(bodyParser.urlencoded({limit: '10mb', extended: true}));
+app.use(bodyParser.json({ limit: "10mb", extended: true }));
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(passport.initialize());
 const jwt = require("jsonwebtoken");
 
@@ -250,6 +251,14 @@ const upload = multer({ storage: storage });
 app.post("/messages", upload.single("imageFile"), async (req, res) => {
   try {
     const { senderId, recepientId, messageType, messageText } = req.body;
+    const threshold = 0.9;
+    const model = await toxicity.load(threshold);
+    const predictions = await model.classify([messageText]);
+    console.log(predictions);
+    const toxicPredictions = predictions.filter(
+      (prediction) => prediction.results[0].match
+    );
+    const toxicLabels = toxicPredictions.map((prediction) => prediction.label);
 
     const newMessage = new Message({
       senderId,
@@ -258,6 +267,7 @@ app.post("/messages", upload.single("imageFile"), async (req, res) => {
       message: messageText,
       timestamp: new Date(),
       imageUrl: messageType === "image" ? req.file.path : null,
+      toxicity: toxicLabels,
     });
 
     await newMessage.save();

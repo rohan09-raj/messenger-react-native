@@ -19,8 +19,9 @@ const messageSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  toxicity: [mongoose.Schema.Types.String],
 });
 
-const Message = mongoose.model('Message',messageSchema);
+const Message = mongoose.model("Message", messageSchema);
 
 module.exports = Message;

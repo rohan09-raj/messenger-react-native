@@ -7,8 +7,15 @@ import {
   TextInput,
   Pressable,
   Image,
+  ActivityIndicator,
 } from "react-native";
-import React, { useState, useContext, useLayoutEffect, useEffect,useRef } from "react";
+import React, {
+  useState,
+  useContext,
+  useLayoutEffect,
+  useEffect,
+  useRef,
+} from "react";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { FontAwesome } from "@expo/vector-icons";
@@ -31,28 +38,27 @@ const ChatMessagesScreen = () => {
   const { recepientId } = route.params;
   const [message, setMessage] = useState("");
   const { userId, setUserId } = useContext(UserType);
+  const [loading, setLoading] = useState(false);
 
   const scrollViewRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom()
-  },[]);
+    scrollToBottom();
+  }, []);
 
   const scrollToBottom = () => {
-      if(scrollViewRef.current){
-          scrollViewRef.current.scrollToEnd({animated:false})
-      }
-  }
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({ animated: false });
+    }
+  };
 
   const handleContentSizeChange = () => {
-      scrollToBottom();
-  }
+    scrollToBottom();
+  };
 
   const handleEmojiPress = () => {
     setShowEmojiSelector(!showEmojiSelector);
   };
-
-
 
   const fetchMessages = async () => {
     try {
@@ -78,9 +84,7 @@ const ChatMessagesScreen = () => {
   useEffect(() => {
     const fetchRecepientData = async () => {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/user/${recepientId}`
-        );
+        const response = await fetch(`${API_BASE_URL}/user/${recepientId}`);
 
         const data = await response.json();
         setRecepientData(data);
@@ -93,6 +97,7 @@ const ChatMessagesScreen = () => {
   }, []);
   const handleSend = async (messageType, imageUri) => {
     try {
+      setLoading(true);
       const formData = new FormData();
       formData.append("senderId", userId);
       formData.append("recepientId", recepientId);
@@ -123,10 +128,11 @@ const ChatMessagesScreen = () => {
       }
     } catch (error) {
       console.log("error in sending the message", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  console.log("messages", selectedMessages);
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: "",
@@ -193,8 +199,8 @@ const ChatMessagesScreen = () => {
 
       if (response.ok) {
         setSelectedMessages((prevSelectedMessages) =>
-        prevSelectedMessages.filter((id) => !messageIds.includes(id))
-      );
+          prevSelectedMessages.filter((id) => !messageIds.includes(id))
+        );
 
         fetchMessages();
       } else {
@@ -237,181 +243,217 @@ const ChatMessagesScreen = () => {
     }
   };
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#F0F0F0" }}>
-      <ScrollView ref={scrollViewRef} contentContainerStyle={{flexGrow:1}} onContentSizeChange={handleContentSizeChange}>
-        {messages.map((item, index) => {
-          if (item.messageType === "text") {
-            const isSelected = selectedMessages.includes(item._id);
-            return (
-              <Pressable
-                onLongPress={() => handleSelectMessage(item)}
-                key={index}
-                style={[
-                  item?.senderId?._id === userId
-                    ? {
-                        alignSelf: "flex-end",
-                        backgroundColor: "#DCF8C6",
-                        padding: 8,
-                        maxWidth: "60%",
-                        borderRadius: 7,
-                        margin: 10,
-                      }
-                    : {
-                        alignSelf: "flex-start",
-                        backgroundColor: "white",
-                        padding: 8,
-                        margin: 10,
-                        borderRadius: 7,
-                        maxWidth: "60%",
-                      },
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        position: "relative",
+      }}
+    >
+      <KeyboardAvoidingView
+        style={{
+          backgroundColor: "#F0F0F0",
+          position: "absolute",
+          height: "100%",
+          width: "100%",
+        }}
+      >
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={{ flexGrow: 1 }}
+          onContentSizeChange={handleContentSizeChange}
+        >
+          {messages.map((item, index) => {
+            if (item.messageType === "text") {
+              const isSelected = selectedMessages.includes(item._id);
+              const isToxic = item.toxicity.length > 0;
+              return (
+                <Pressable
+                  onLongPress={() => handleSelectMessage(item)}
+                  key={index}
+                  style={[
+                    item?.senderId?._id === userId
+                      ? {
+                          alignSelf: "flex-end",
+                          backgroundColor: `${isToxic ? "#FAA0A0" : "#DCF8C6"}`,
+                          padding: 8,
+                          maxWidth: "60%",
+                          borderRadius: 7,
+                          margin: 10,
+                        }
+                      : {
+                          alignSelf: "flex-start",
+                          backgroundColor: "white",
+                          padding: 8,
+                          margin: 10,
+                          borderRadius: 7,
+                          maxWidth: "60%",
+                        },
 
-                  isSelected && { width: "100%", backgroundColor: "#F0FFFF" },
-                ]}
-              >
-                <Text
-                  style={{
-                    fontSize: 13,
-                    textAlign: isSelected ? "right" : "left",
-                  }}
+                    isSelected && { width: "100%", backgroundColor: "#F0FFFF" },
+                  ]}
                 >
-                  {item?.message}
-                </Text>
-                <Text
-                  style={{
-                    textAlign: "right",
-                    fontSize: 9,
-                    color: "gray",
-                    marginTop: 5,
-                  }}
-                >
-                  {formatTime(item.timeStamp)}
-                </Text>
-              </Pressable>
-            );
-          }
-
-          if (item.messageType === "image") {
-            const baseUrl =
-              "/Users/sujananand/Build/messenger-project/api/files/";
-            const imageUrl = item.imageUrl;
-            const filename = imageUrl.split("/").pop();
-            const source = { uri: baseUrl + filename };
-            return (
-              <Pressable
-                key={index}
-                style={[
-                  item?.senderId?._id === userId
-                    ? {
-                        alignSelf: "flex-end",
-                        backgroundColor: "#DCF8C6",
-                        padding: 8,
-                        maxWidth: "60%",
-                        borderRadius: 7,
-                        margin: 10,
-                      }
-                    : {
-                        alignSelf: "flex-start",
-                        backgroundColor: "white",
-                        padding: 8,
-                        margin: 10,
-                        borderRadius: 7,
-                        maxWidth: "60%",
-                      },
-                ]}
-              >
-                <View>
-                  <Image
-                    source={source}
-                    style={{ width: 200, height: 200, borderRadius: 7 }}
-                  />
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      textAlign: isSelected ? "right" : "left",
+                    }}
+                  >
+                    {isToxic ? "*".repeat(item.message.length) : item.message}
+                  </Text>
                   <Text
                     style={{
                       textAlign: "right",
                       fontSize: 9,
-                      position: "absolute",
-                      right: 10,
-                      bottom: 7,
-                      color: "white",
+                      color: "gray",
                       marginTop: 5,
                     }}
                   >
-                    {formatTime(item?.timeStamp)}
+                    {formatTime(item.timeStamp)}
                   </Text>
-                </View>
-              </Pressable>
-            );
-          }
-        })}
-      </ScrollView>
+                </Pressable>
+              );
+            }
 
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 10,
-          paddingVertical: 10,
-          borderTopWidth: 1,
-          borderTopColor: "#dddddd",
-          marginBottom: showEmojiSelector ? 0 : 25,
-        }}
-      >
-        <Entypo
-          onPress={handleEmojiPress}
-          style={{ marginRight: 5 }}
-          name="emoji-happy"
-          size={24}
-          color="gray"
-        />
-
-        <TextInput
-          value={message}
-          onChangeText={(text) => setMessage(text)}
-          style={{
-            flex: 1,
-            height: 40,
-            borderWidth: 1,
-            borderColor: "#dddddd",
-            borderRadius: 20,
-            paddingHorizontal: 10,
-          }}
-          placeholder="Type Your message..."
-        />
+            if (item.messageType === "image") {
+              const baseUrl =
+                "/Users/sujananand/Build/messenger-project/api/files/";
+              const imageUrl = item.imageUrl;
+              const filename = imageUrl.split("/").pop();
+              const source = { uri: baseUrl + filename };
+              return (
+                <Pressable
+                  key={index}
+                  style={[
+                    item?.senderId?._id === userId
+                      ? {
+                          alignSelf: "flex-end",
+                          backgroundColor: "#DCF8C6",
+                          padding: 8,
+                          maxWidth: "60%",
+                          borderRadius: 7,
+                          margin: 10,
+                        }
+                      : {
+                          alignSelf: "flex-start",
+                          backgroundColor: "white",
+                          padding: 8,
+                          margin: 10,
+                          borderRadius: 7,
+                          maxWidth: "60%",
+                        },
+                  ]}
+                >
+                  <View>
+                    <Image
+                      source={source}
+                      style={{ width: 200, height: 200, borderRadius: 7 }}
+                    />
+                    <Text
+                      style={{
+                        textAlign: "right",
+                        fontSize: 9,
+                        position: "absolute",
+                        right: 10,
+                        bottom: 7,
+                        color: "white",
+                        marginTop: 5,
+                      }}
+                    >
+                      {formatTime(item?.timeStamp)}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            }
+          })}
+        </ScrollView>
 
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 7,
-            marginHorizontal: 8,
+            paddingHorizontal: 10,
+            paddingVertical: 10,
+            borderTopWidth: 1,
+            borderTopColor: "#dddddd",
+            marginBottom: showEmojiSelector ? 0 : 25,
           }}
         >
-          <Entypo onPress={pickImage} name="camera" size={24} color="gray" />
+          <Entypo
+            onPress={handleEmojiPress}
+            style={{ marginRight: 5 }}
+            name="emoji-happy"
+            size={24}
+            color="gray"
+          />
 
-          <Feather name="mic" size={24} color="gray" />
+          <TextInput
+            value={message}
+            onChangeText={(text) => setMessage(text)}
+            style={{
+              flex: 1,
+              height: 40,
+              borderWidth: 1,
+              borderColor: "#dddddd",
+              borderRadius: 20,
+              paddingHorizontal: 10,
+            }}
+            placeholder="Type Your message..."
+          />
+
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 7,
+              marginHorizontal: 8,
+            }}
+          >
+            <Entypo onPress={pickImage} name="camera" size={24} color="gray" />
+
+            <Feather name="mic" size={24} color="gray" />
+          </View>
+
+          <Pressable
+            onPress={() => handleSend("text")}
+            style={{
+              backgroundColor: "#ff0000",
+              paddingVertical: 8,
+              paddingHorizontal: 12,
+              borderRadius: 20,
+            }}
+          >
+            <Text style={{ color: "white", fontWeight: "bold" }}>Send</Text>
+          </Pressable>
         </View>
 
-        <Pressable
-          onPress={() => handleSend("text")}
+        {showEmojiSelector && (
+          <EmojiSelector
+            onEmojiSelected={(emoji) => {
+              setMessage((prevMessage) => prevMessage + emoji);
+            }}
+            style={{ height: 250 }}
+          />
+        )}
+      </KeyboardAvoidingView>
+      {loading && (
+        <View
           style={{
-            backgroundColor: "#ff0000",
-            paddingVertical: 8,
-            paddingHorizontal: 12,
-            borderRadius: 20,
+            position: "absolute",
+            height: "100%",
+            width: "100%",
+            backgroundColor: "#0000001A",
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          <Text style={{ color: "white", fontWeight: "bold" }}>Send</Text>
-        </Pressable>
-      </View>
-
-      {showEmojiSelector && (
-        <EmojiSelector
-          onEmojiSelected={(emoji) => {
-            setMessage((prevMessage) => prevMessage + emoji);
-          }}
-          style={{ height: 250 }}
-        />
+          <ActivityIndicator size="large" color="black" />
+          <Text>Sending...</Text>
+        </View>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
